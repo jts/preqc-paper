@@ -2,10 +2,12 @@ SHELL=/bin/bash -o pipefail
 
 # Do not delete intermediate files
 .SECONDARY:
-all: report
+#all: preqc_report.pdf sim_report.pdf
 
 # SGA version
-SGA=sga-0.10.6
+#SGA=sga-0.10.6
+SGA=$(SGA_DEV)
+DWGSIM=~/software/bin/dwgsim
 
 #
 # Short read input from the ENA
@@ -36,65 +38,89 @@ OYSTER_RUNS=SRR322874 SRR322875 SRR322876 SRR322877
 YEAST_DIR=ftp://ftp.sra.ebi.ac.uk/vol1/fastq/ERR049/
 YEAST_RUN=ERR049929
 
+#
+# Short read data sets
+#
 
-#
-# Download needed data and run sga preprocess on each
-#
+# Download and preprocess every data set
 snake.fastq.gz:
 		rm -f $@
-		$(foreach id, $(SNAKE_RUNS), $(SGA) preprocess --pe-mode 1 <(curl $(SNAKE_DIR)/$(id)/$(id)_1.fastq.gz | zcat) <(curl $(SNAKE_DIR)/$(id)/$(id)_2.fastq.gz | zcat) | gzip >> $@;)
+		$(foreach id, $(SNAKE_RUNS), \
+            $(SGA) preprocess --pe-mode 1 \
+            <(curl $(SNAKE_DIR)/$(id)/$(id)_1.fastq.gz | zcat) \
+            <(curl $(SNAKE_DIR)/$(id)/$(id)_2.fastq.gz | zcat) | gzip >> $@;)
 
 bird.fastq.gz:
-		$(SGA) preprocess --pe-mode 1 <(curl $(BIRD_DIR)/$(BIRD_RUN)/$(BIRD_RUN)_1.fastq.gz | zcat) <(curl $(BIRD_DIR)/$(BIRD_RUN)/$(BIRD_RUN)_2.fastq.gz | zcat) | gzip > $@
+		$(SGA) preprocess --pe-mode 1 \
+            <(curl $(BIRD_DIR)/$(BIRD_RUN)/$(BIRD_RUN)_1.fastq.gz | zcat) \
+            <(curl $(BIRD_DIR)/$(BIRD_RUN)/$(BIRD_RUN)_2.fastq.gz | zcat) | gzip > $@
 
 fish.fastq.gz:
 		rm -f $@
-		$(foreach id, $(CICHLID_RUNS), $(SGA) preprocess --pe-mode 1 <(curl $(CICHLID_DIR)/$(id)/$(id)_1.fastq.gz | zcat) <(curl $(CICHLID_DIR)/$(id)/$(id)_2.fastq.gz | zcat) | gzip >> $@;)
+		$(foreach id, $(CICHLID_RUNS), \
+            $(SGA) preprocess --pe-mode 1 \
+            <(curl $(CICHLID_DIR)/$(id)/$(id)_1.fastq.gz | zcat) \
+            <(curl $(CICHLID_DIR)/$(id)/$(id)_2.fastq.gz | zcat) | gzip >> $@;)
 
 human.fastq.gz:
 		rm -f $@
-		$(foreach id, $(HUMAN_RUNS), $(SGA) preprocess --pe-mode 1 <(curl $(HUMAN_DIR)/$(id)/$(id)_1.fastq.gz | zcat) <(curl $(HUMAN_DIR)/$(id)/$(id)_2.fastq.gz | zcat) | gzip >> $@;)
+		$(foreach id, $(HUMAN_RUNS), \
+            $(SGA) preprocess --pe-mode 1 \
+                <(curl $(HUMAN_DIR)/$(id)/$(id)_1.fastq.gz | zcat) \
+                <(curl $(HUMAN_DIR)/$(id)/$(id)_2.fastq.gz | zcat) | gzip >> $@;)
 
 oyster.fastq.gz:
 		rm -f $@
-		$(foreach id, $(OYSTER_RUNS), $(SGA) preprocess --pe-mode 1 <(curl $(OYSTER_DIR)/$(id)/$(id)_1.fastq.gz | zcat) <(curl $(OYSTER_DIR)/$(id)/$(id)_2.fastq.gz | zcat) | gzip >> $@;)
+		$(foreach id, $(OYSTER_RUNS), \
+            $(SGA) preprocess --pe-mode 1 \
+                <(curl $(OYSTER_DIR)/$(id)/$(id)_1.fastq.gz | zcat) \
+                <(curl $(OYSTER_DIR)/$(id)/$(id)_2.fastq.gz | zcat) | gzip >> $@;)
 
 yeast.fastq.gz:
-		$(SGA) preprocess -s 0.07 --pe-mode 1 <(curl $(YEAST_DIR)/$(YEAST_RUN)/$(YEAST_RUN)_1.fastq.gz | zcat) <(curl $(YEAST_DIR)/$(YEAST_RUN)/$(YEAST_RUN)_2.fastq.gz | zcat) | gzip > $@
+		$(SGA) preprocess -s 0.07 --pe-mode 1 \
+            <(curl $(YEAST_DIR)/$(YEAST_RUN)/$(YEAST_RUN)_1.fastq.gz | zcat) \
+            <(curl $(YEAST_DIR)/$(YEAST_RUN)/$(YEAST_RUN)_2.fastq.gz | zcat) | gzip > $@
 
-#
-# Download NA12878 diploid reference
-#
-NA12878_diploid_dec16.2012.zip:
-		wget http://sv.gersteinlab.org/NA12878_diploid/NA12878_diploid_dec16.2012.zip
-
-NA12878_diploid_genome_dec16_2013/README: NA12878_diploid_dec16.2012.zip
-		unzip $<
-
-NA12878.diploid.fa: NA12878_diploid_genome_dec16_2013/README
-		sga preprocess --permute NA12878_diploid_genome_dec16_2013/*_NA12878_maternal.fa NA12878_diploid_genome_dec16_2013/*_NA12878_paternal.fa > $@
-
-#
-# Build BWT files from each data set
-#
-
+# Build the FM-index for each set
 %.bwt: %.fastq.gz
 		$(SGA) index -a ropebwt -t 8 --no-reverse $<
 
-#
-# Build BWT files for the diploid reference
-#
-NA12878.diploid.bwt: NA12878.diploid.fa
-		$(SGA) index -t 8 -d 4 --no-reverse $<
-
-#
-# Generate primary output for the short read sets
-#
-%.preqc: %.bwt
+# Make the preqc file for the short read sets
+%.preqc: %.bwt %.fastq.gz
 		$(SGA) preqc -t 8 $(patsubst %.bwt, %.fastq.gz, $<) > $@
 
 #
-# Generate primary output for the diploid reference
+# NA12878 diploid reference
 #
+NA12878_diploid_dec16.2012.zip:
+		wget http://sv.gersteinlab.org/NA12878_diploid/NA12878_diploid_dec16.2012.zip
+		unzip $<
+		$(SGA) preprocess --permute NA12878_diploid_genome_dec16_2013/*_NA12878_maternal.fa NA12878_diploid_genome_dec16_2013/*_NA12878_paternal.fa > $@
+
+# Build BWT files for the diploid reference
+NA12878.diploid.bwt: NA12878.diploid.fa
+		$(SGA) index -t 8 -d 4 --no-reverse $<
+
+# Make the reference preqc file
 NA12878.diploid.preqc: NA12878.diploid.bwt
-		$(SGA) preqc -t 8 --reference $(patsubst %.bwt, %.fastq.gz, $<) > $@
+		$(SGA) preqc -t 8 --diploid $(patsubst %.bwt, %.fastq.gz, $<) > $@
+
+#
+# Simulation
+#
+diploid.sim.hapcov%.fastq: NA12878.diploid.fa
+		$(DWGSIM) -C $* -r 0.0 -1 100 -2 100 -e 0.0001-0.005 -E 0.0001-0.005 -y 0 -d 300 -s 30 $< $@
+		rm $@.bwa* $@.mutations.vcf $@.mutations.txt
+		mv $@.bfast.fastq $@
+        
+%.bwt: %.fastq
+		$(SGA) index -a ropebwt -t 8 --no-reverse $<
+
+%.preqc: %.bwt %.fastq
+		$(SGA) preqc -t 8 $*.fastq > $@
+
+#
+# SOAPdenovo2 assemblies
+#
+%.contigs.fa:
+		$(dir $(MAKEFILE_LIST))/run_soap2.pl $@
