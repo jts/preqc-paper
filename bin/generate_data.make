@@ -118,9 +118,3 @@ diploid.sim.hapcov%.fastq: NA12878.diploid.fa
 
 %.preqc: %.bwt %.fastq
 		$(SGA) preqc -t 8 $*.fastq > $@
-
-#
-# SOAPdenovo2 assemblies
-#
-%.contigs.fa:
-		$(dir $(MAKEFILE_LIST))/run_soap2.pl $@
