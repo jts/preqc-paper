@@ -6,8 +6,9 @@ SHELL=/bin/bash -o pipefail
 
 # SGA version
 #SGA=sga-0.10.6
+DWGSIM=dwgsim
 SGA=$(SGA_DEV)
-DWGSIM=~/software/bin/dwgsim
+#DWGSIM=~/software/bin/dwgsim
 
 #
 # Short read input from the ENA
@@ -92,24 +93,25 @@ yeast.fastq.gz:
 #
 # NA12878 diploid reference
 #
-NA12878_diploid_dec16.2012.zip:
+NA12878.diploid.reference.fa:
 		wget http://sv.gersteinlab.org/NA12878_diploid/NA12878_diploid_dec16.2012.zip
-		unzip $<
+		unzip NA12878_diploid_dec16.2012.zip
 		$(SGA) preprocess --permute NA12878_diploid_genome_dec16_2013/*_NA12878_maternal.fa NA12878_diploid_genome_dec16_2013/*_NA12878_paternal.fa > $@
 
 # Build BWT files for the diploid reference
-NA12878.diploid.bwt: NA12878.diploid.fa
+NA12878.diploid.reference.bwt: NA12878.diploid.reference.fa
 		$(SGA) index -t 8 -d 4 --no-reverse $<
 
 # Make the reference preqc file
-NA12878.diploid.preqc: NA12878.diploid.bwt
+NA12878.diploid.reference.preqc: NA12878.diploid.reference.bwt
 		$(SGA) preqc -t 8 --diploid $(patsubst %.bwt, %.fastq.gz, $<) > $@
 
 #
 # Simulation
 #
-diploid.sim.hapcov%.fastq: NA12878.diploid.fa
-		$(DWGSIM) -C $* -r 0.0 -1 100 -2 100 -e 0.0001-0.005 -E 0.0001-0.005 -y 0 -d 300 -s 30 $< $@
+NA12878.40x.simulation.fastq: NA12878.diploid.reference.fa
+		# NB we request 20X from dwgsim because the diploid reference has two copies of each chr
+		$(DWGSIM) -C 20 -r 0.0 -1 100 -2 100 -e 0.0001-0.005 -E 0.0001-0.005 -y 0 -d 300 -s 30 $< $@
 		rm $@.bwa* $@.mutations.vcf $@.mutations.txt
 		mv $@.bfast.fastq $@
         
