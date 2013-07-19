@@ -5,10 +5,8 @@ SHELL=/bin/bash -o pipefail
 #all: preqc_report.pdf sim_report.pdf
 
 # SGA version
-#SGA=sga-0.10.6
+SGA=sga-0.10.9
 DWGSIM=dwgsim
-SGA=$(SGA_DEV)
-#DWGSIM=~/software/bin/dwgsim
 
 #
 # Short read input from the ENA
