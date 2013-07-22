@@ -2,11 +2,12 @@ SHELL=/bin/bash -o pipefail
 
 # Do not delete intermediate files
 .SECONDARY:
-#all: preqc_report.pdf sim_report.pdf
+all: main_report.pdf sim_report.pdf
 
 # SGA version
 SGA=sga-0.10.9
 DWGSIM=dwgsim
+REPORT=sga-preqc-report.py
 
 #
 # Short read input from the ENA
@@ -118,3 +119,15 @@ NA12878.40x.simulation.fastq: NA12878.diploid.reference.fa
 
 %.preqc: %.bwt %.fastq
 		$(SGA) preqc -t 8 $*.fastq > $@
+
+
+#
+# Final PDF reports
+#
+main_report.pdf: snake.preqc bird.preqc yeast.preqc human.preqc fish.preqc oyster.preqc
+		python $(REPORT) $+
+		mv preqc_report.pdf $@
+
+sim_report.pdf: human.preqc NA12878.40x.simulation.preqc NA12878.diploid.reference.preqc
+		python $(REPORT) $+
+		mv preqc_report.pdf $@
