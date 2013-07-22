@@ -1,8 +1,10 @@
 SHELL=/bin/bash -o pipefail
 
+# Output targets
+all: main_report.pdf sim_report.pdf
+
 # Do not delete intermediate files
 .SECONDARY:
-all: main_report.pdf sim_report.pdf
 
 # SGA version
 SGA=sga-0.10.9
