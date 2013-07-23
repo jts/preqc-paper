@@ -5,7 +5,7 @@ SHELL=/bin/bash -o pipefail
 #all: preqc_report.pdf sim_report.pdf
 
 # SGA version
-SGA=sga-0.10.9
+SGA=sga-0.10.10
 DWGSIM=dwgsim
 
 #
