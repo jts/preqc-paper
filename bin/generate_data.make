@@ -7,7 +7,7 @@ all: main_report.pdf sim_report.pdf
 .SECONDARY:
 
 # SGA version
-SGA=sga-0.10.10
+SGA=sga-0.10.12
 DWGSIM=dwgsim
 REPORT=sga-preqc-report.py
 
